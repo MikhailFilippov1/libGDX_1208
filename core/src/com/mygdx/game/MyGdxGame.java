@@ -29,7 +29,7 @@ public class MyGdxGame extends ApplicationAdapter {
 		Gdx.graphics.setTitle("Clicks " + clk + " times!");
 
 		batch.begin();
-		//batch.draw(img, 0, 0);
+		//batch.draw(img, 0, 0);  // убрал их картинку
 		batch.draw(img, x, y);
 		batch.end();
 	}
