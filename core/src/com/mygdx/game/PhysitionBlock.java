@@ -9,10 +9,16 @@ import com.badlogic.gdx.physics.box2d.*;
 public class PhysitionBlock {
     private final World world;
     private final Box2DDebugRenderer debugRenderer;
+    private final float PPM = 10;
 
     public PhysitionBlock(){
         world = new World(new Vector2(0,-9.81f), true);
+        world.setContactListener(new MyContactListener());
         debugRenderer = new Box2DDebugRenderer();
+    }
+
+    public void destroyBody(Body body){
+        world.destroyBody(body);
     }
 
     public Body addObject(RectangleMapObject object){
@@ -31,13 +37,20 @@ public class PhysitionBlock {
         polygonShape.setAsBox(rect.width/2, rect.height/2);
 
         fdef.shape = polygonShape;
-        fdef.friction = 0;
+        fdef.friction = 0.1f;
         fdef.density = 1;
         fdef.restitution = (float) object.getProperties().get("Restitution");
 
         Body body;
         body = world.createBody(def);
-        body.createFixture(fdef).setUserData("стена");
+        String name = object.getName();
+        body.createFixture(fdef).setUserData(name);
+        if(name != null && name.equals("Hero")){
+            polygonShape.setAsBox(rect.width/6, rect.height/12, new Vector2(0, -rect.width/2), 0);
+            body.createFixture(fdef).setUserData("ноги");
+            body.getFixtureList().get(body.getFixtureList().size-1).setSensor(true);
+        }
+
 
         polygonShape.dispose();
         return body;

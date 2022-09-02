@@ -4,6 +4,8 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -22,21 +24,25 @@ import com.mygdx.game.AnimationHero;
 import com.mygdx.game.MainApp;
 import com.mygdx.game.PhysitionBlock;
 
+import java.util.ArrayList;
+
 public class GameScreen implements Screen {
     private MainApp game;
     SpriteBatch batch;
     int clk;
+    int coinsQuantity;
     AnimationHero animationHero;
     boolean heroDirection = true;
     boolean lookRight = true;
+    public static boolean canJump = false;
 
     private OrthographicCamera camera;
     private TiledMap map;
     private OrthogonalTiledMapRenderer mapRenderer;
 
-    int distance = 0;
-    int heroPositionX = 0;
-    private float STEP = 3;
+//    int distance = 0;
+//    int heroPositionX = 0;
+//    private float STEP = 3;
     private ShapeRenderer shapeRenderer;
     private PhysitionBlock physitionBlock;
 
@@ -44,14 +50,24 @@ public class GameScreen implements Screen {
     private final int[] layer1;
     private Body body;
     private final Rectangle heroRect;
+    private final Music music;
+    private final Sound sound;
+    public static ArrayList<Body> bodies;
 
     public GameScreen(MainApp game) {
+        bodies = new ArrayList<>();
         this.game = game;
         batch = new SpriteBatch();
 
         animationHero = new AnimationHero("elemental.png", 8, 1);
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        camera.zoom = 1.25f;
+        camera.zoom = 0.25f;
+
+        music = Gdx.audio.newMusic(Gdx.files.internal("muzyka-iz-kino-rozovaja-pantera.mp3"));
+        music.setLooping(true);
+        music.play();
+
+        sound = Gdx.audio.newSound(Gdx.files.internal("Bulk.mp3"));
 
         map = new TmxMapLoader().load("map/безымянный.tmx");
         mapRenderer = new OrthogonalTiledMapRenderer(map);
@@ -88,8 +104,11 @@ public class GameScreen implements Screen {
 
         if(Gdx.input.isKeyPressed(Input.Keys.LEFT) ) body.applyForceToCenter(new Vector2(-10000, 0), true);
         if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ) body.applyForceToCenter(new Vector2(10000, 0), true);
-        if(Gdx.input.isKeyPressed(Input.Keys.UP) ) camera.position.y -= STEP;
-        if(Gdx.input.isKeyPressed(Input.Keys.DOWN) ) camera.position.y += STEP;
+        if(Gdx.input.isKeyPressed(Input.Keys.UP) && canJump) {
+            body.applyForceToCenter(new Vector2(0, 5000000), true);
+            canJump = false;
+        }
+ //       if(Gdx.input.isKeyPressed(Input.Keys.DOWN) ) camera.position.y += STEP;
 
         if(Gdx.input.isKeyPressed(Input.Keys.P)) camera.zoom += 0.01f;
         if(Gdx.input.isKeyPressed(Input.Keys.O) && camera.zoom > 0) camera.zoom -= 0.01f;
@@ -103,26 +122,27 @@ public class GameScreen implements Screen {
         float x = Gdx.input.getX() - animationHero.getFrame().getRegionWidth()/2;
         float y = Gdx.graphics.getHeight() - Gdx.input.getY() - animationHero.getFrame().getRegionHeight()/2;
 
-        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) clk++;
-        Gdx.graphics.setTitle("Clicks " + clk + " times!");
+//        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) clk++;
+//        Gdx.graphics.setTitle("Clicks " + clk + " times!");
+        Gdx.graphics.setTitle(coinsQuantity + " coins keeps!");
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.L)) heroDirection = true;
         if(Gdx.input.isKeyJustPressed(Input.Keys.R)) heroDirection = false;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) lookRight = false;
         if(Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) lookRight = true;
-        if(heroPositionX + 64 >= Gdx.graphics.getWidth()) lookRight = false;
-        if(heroPositionX <= 0)lookRight = true;
+ //       if(heroPositionX + 64 >= Gdx.graphics.getWidth()) lookRight = false;
+ //       if(heroPositionX <= 0)lookRight = true;
 
         if(!animationHero.getFrame().isFlipX() && !lookRight) animationHero.getFrame().flip(true, false);
         if(animationHero.getFrame().isFlipX() && lookRight) animationHero.getFrame().flip(true, false);
 
-        if(lookRight) {
-            heroPositionX += 1;
-        }
-        else  {
-            heroPositionX -= 1;
-        }
+ //       if(lookRight) {
+ //           heroPositionX += 1;
+//        }
+ //       else  {
+ //           heroPositionX -= 1;
+ //       }
 
         batch.setProjectionMatrix(camera.combined);
 
@@ -153,6 +173,13 @@ public class GameScreen implements Screen {
 
         physitionBlock.step();
         physitionBlock.debugDraw(camera);
+
+        for (int i = 0; i < bodies.size(); i++) {
+            physitionBlock.destroyBody(bodies.get(i));
+            sound.play();
+            coinsQuantity++;
+        }
+        bodies.clear();
     }
 
     @Override
@@ -178,6 +205,6 @@ public class GameScreen implements Screen {
 
     @Override
     public void dispose() {
-
+        this.music.dispose();
     }
 }
