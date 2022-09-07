@@ -2,6 +2,7 @@ package com.mygdx.game;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
@@ -11,7 +12,7 @@ public class AnimationHero {
     private com.badlogic.gdx.graphics.g2d.Animation<TextureRegion> anmHero;
     private float time;
 
-    public AnimationHero(String nameOfHero, int col, int row){
+    public AnimationHero(String name, String action, Animation.PlayMode playMode){
 //        img = new Texture(nameOfHero);
 //
 //        TextureRegion region = new TextureRegion(img);
@@ -26,13 +27,14 @@ public class AnimationHero {
 //            }
 //        }
 
-        atlas = new TextureAtlas("atlas/walk.atlas");
+        atlas = new TextureAtlas("atlas/" + name + ".atlas");
 
 //        anmHero = new com.badlogic.gdx.graphics.g2d.Animation<TextureRegion>(1 / 15f, regions);
-        anmHero = new com.badlogic.gdx.graphics.g2d.Animation<TextureRegion>(1 / 15f, atlas.findRegions("walk"));
-        anmHero.setPlayMode(com.badlogic.gdx.graphics.g2d.Animation.PlayMode.LOOP);
+        anmHero = new com.badlogic.gdx.graphics.g2d.Animation<TextureRegion>(1 / 15f, atlas.findRegions(action));
+        anmHero.setPlayMode(playMode);
 
-        time += Gdx.graphics.getDeltaTime();
+//        time += Gdx.graphics.getDeltaTime();
+        time = 0;
     }
 
     public TextureRegion getFrame(){
