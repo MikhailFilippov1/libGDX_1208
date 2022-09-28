@@ -1,6 +1,5 @@
 package com.mygdx.game.screens;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
@@ -8,7 +7,7 @@ import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
@@ -31,7 +30,12 @@ public class GameScreen implements Screen {
     SpriteBatch batch;
     int clk;
     int coinsQuantity;
-    AnimationHero animationHero;
+    private final AnimationHero heroWalk;
+    private final AnimationHero heroRun;
+    private final AnimationHero heroJump;
+    private final AnimationHero heroIdle;
+    private final AnimationHero heroHit;
+    private  AnimationHero hero;
     boolean heroDirection = true;
     boolean lookRight = true;
     public static boolean canJump = false;
@@ -40,9 +44,7 @@ public class GameScreen implements Screen {
     private TiledMap map;
     private OrthogonalTiledMapRenderer mapRenderer;
 
-//    int distance = 0;
-//    int heroPositionX = 0;
-//    private float STEP = 3;
+
     private ShapeRenderer shapeRenderer;
     private PhysitionBlock physitionBlock;
 
@@ -59,7 +61,13 @@ public class GameScreen implements Screen {
         this.game = game;
         batch = new SpriteBatch();
 
-        animationHero = new AnimationHero("elemental.png", 8, 1);
+        heroWalk = new AnimationHero("unnamed", "walk", Animation.PlayMode.LOOP);
+        heroRun = new AnimationHero("unnamed","run", Animation.PlayMode.LOOP);
+        heroJump = new AnimationHero("unnamed","jump", Animation.PlayMode.LOOP_REVERSED);
+        heroIdle = new AnimationHero("unnamed","idle", Animation.PlayMode.NORMAL);
+        heroHit = new AnimationHero("unnamed","hit", Animation.PlayMode.LOOP_REVERSED);
+        hero = heroIdle;
+
         camera = new OrthographicCamera(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         camera.zoom = 0.25f;
 
@@ -102,58 +110,63 @@ public class GameScreen implements Screen {
     @Override
     public void render(float delta) {
 
-        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) ) body.applyForceToCenter(new Vector2(-10000, 0), true);
-        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ) body.applyForceToCenter(new Vector2(10000, 0), true);
-        if(Gdx.input.isKeyPressed(Input.Keys.UP) && canJump) {
-            body.applyForceToCenter(new Vector2(0, 5000000), true);
-            canJump = false;
+        boolean isKeyPressed = false;
+
+        if(Gdx.input.isKeyPressed(Input.Keys.LEFT) ){
+            isKeyPressed = true;
+            hero = heroWalk;
+            body.applyForceToCenter(new Vector2(-1, 0), true);
+            if(body.getLinearVelocity().x < -5f) hero = heroRun;
         }
- //       if(Gdx.input.isKeyPressed(Input.Keys.DOWN) ) camera.position.y += STEP;
+        if(Gdx.input.isKeyPressed(Input.Keys.RIGHT) ) {
+            isKeyPressed = true;
+            hero = heroWalk;
+            body.applyForceToCenter(new Vector2(1, 0), true);
+            if(body.getLinearVelocity().x > 5f) hero = heroRun;
+        }
+        if(Gdx.input.isKeyPressed(Input.Keys.UP)) {
+            isKeyPressed = true;
+            if(canJump) {
+                hero = heroJump;
+                body.applyForceToCenter(new Vector2(0, 10), true);
+                canJump = false;
+            }
+        }
 
-        if(Gdx.input.isKeyPressed(Input.Keys.P)) camera.zoom += 0.01f;
-        if(Gdx.input.isKeyPressed(Input.Keys.O) && camera.zoom > 0) camera.zoom -= 0.01f;
+        if(Gdx.input.isKeyPressed(Input.Keys.SPACE) && canJump) {
+            isKeyPressed = true;
+            hero = heroHit;
+        }
 
-        camera.position.x = body.getPosition().x;
-        camera.position.y = body.getPosition().y;
+        if(Gdx.input.isKeyPressed(Input.Keys.NUMPAD_ADD)) camera.zoom += 0.01f;
+        if(Gdx.input.isKeyPressed(Input.Keys.NUMPAD_SUBTRACT) && camera.zoom > 0) camera.zoom -= 0.01f;
+
+        camera.position.x = body.getPosition().x * PhysitionBlock.PPM;
+        camera.position.y = body.getPosition().y * PhysitionBlock.PPM;
         camera.update();
         ScreenUtils.clear(Color.BLACK);
 
-        animationHero.setTime(Gdx.graphics.getDeltaTime());
-        float x = Gdx.input.getX() - animationHero.getFrame().getRegionWidth()/2;
-        float y = Gdx.graphics.getHeight() - Gdx.input.getY() - animationHero.getFrame().getRegionHeight()/2;
+        hero.setTime(Gdx.graphics.getDeltaTime());
 
-//        if(Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) clk++;
-//        Gdx.graphics.setTitle("Clicks " + clk + " times!");
         Gdx.graphics.setTitle(coinsQuantity + " coins keeps!");
-
-        if(Gdx.input.isKeyJustPressed(Input.Keys.L)) heroDirection = true;
-        if(Gdx.input.isKeyJustPressed(Input.Keys.R)) heroDirection = false;
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) lookRight = false;
         if(Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) lookRight = true;
- //       if(heroPositionX + 64 >= Gdx.graphics.getWidth()) lookRight = false;
- //       if(heroPositionX <= 0)lookRight = true;
 
-        if(!animationHero.getFrame().isFlipX() && !lookRight) animationHero.getFrame().flip(true, false);
-        if(animationHero.getFrame().isFlipX() && lookRight) animationHero.getFrame().flip(true, false);
+        if(!hero.getFrame().isFlipX() && !lookRight) hero.getFrame().flip(true, false);
+        if(hero.getFrame().isFlipX() && lookRight) hero.getFrame().flip(true, false);
 
- //       if(lookRight) {
- //           heroPositionX += 1;
-//        }
- //       else  {
- //           heroPositionX -= 1;
- //       }
-
-        batch.setProjectionMatrix(camera.combined);
-
+        float x = Gdx.graphics.getWidth()/2f - heroRect.getWidth()/2/camera.zoom;
+        float y = Gdx.graphics.getHeight()/2f - heroRect.getHeight()/2/camera.zoom;
         batch.begin();
         heroRect.x = body.getPosition().x - heroRect.width/2;
         heroRect.y = body.getPosition().y - heroRect.height/2;
-        batch.draw(animationHero.getFrame(), heroRect.x, heroRect.y, heroRect.width, heroRect.height);
+        batch.draw(hero.getFrame(), x, y);
         batch.end();
 
         mapRenderer.setView(camera);
         mapRenderer.render(background);
+        mapRenderer.render(layer1);
 
         if(Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)){
             dispose();
@@ -169,7 +182,6 @@ public class GameScreen implements Screen {
 //        }
 //        shapeRenderer.end();
 
-        mapRenderer.render(layer1);
 
         physitionBlock.step();
         physitionBlock.debugDraw(camera);
@@ -180,6 +192,9 @@ public class GameScreen implements Screen {
             coinsQuantity++;
         }
         bodies.clear();
+        if(!isKeyPressed) {
+            hero = heroIdle;
+        }
     }
 
     @Override
@@ -206,5 +221,8 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
         this.music.dispose();
+        this.mapRenderer.dispose();
+        this.hero.dispose();
+        this.sound.dispose();
     }
 }
